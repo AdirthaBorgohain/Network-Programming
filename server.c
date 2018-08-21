@@ -1,51 +1,89 @@
 #include <stdio.h>
-#include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
+#include <arpa/inet.h>
+ 
+int main(){ 
+      int welcomeSocket, newSocket;
+  
+      char buffer[1024];
+  
+      struct sockaddr_in serverAddr;
+  
+      struct sockaddr_in serverStorage;
+  
+      socklen_t addr_size;
+  
+      welcomeSocket = socket(PF_INET, SOCK_STREAM, 0);
+  
+  
+      serverAddr.sin_family = AF_INET;
+  
+      serverAddr.sin_port = htons(16012);
+  
+  
+      serverAddr.sin_addr.s_addr = inet_addr("127.0.0.1");
+  
+      memset(serverAddr.sin_zero, '\0', sizeof serverAddr.sin_zero);
+  
+      bind(welcomeSocket, (struct sockaddr *) &serverAddr, sizeof(serverAddr));
+  
+      if(listen(welcomeSocket,5)==0)
+  
+          printf("Listening\n");
+  
+      else
+  
+          printf("Error\n");
+  
+      addr_size = sizeof serverStorage;
+  
+      newSocket = accept(welcomeSocket, (struct sockaddr *) &serverStorage, &addr_size);
+  
+      struct sockaddr_in* cliIP = (struct sockaddr_in*)&serverStorage;
+  
+      struct in_addr ipAddr = cliIP->sin_addr;
 
-void error(char *msg)
-{
-    perror(msg);
-    exit(1);
-}
+      char str[INET_ADDRSTRLEN];
+  
+      inet_ntop(AF_INET, &ipAddr, str, INET_ADDRSTRLEN);
+  
+      char* ID = cliIP->sin_zero;
+  
+      char str2[8];
+  
+      inet_ntop(AF_INET, &ID, str2, 8);
+  
+      printf("\nClient IP is: %s", str);
+  
+      printf("\nClient port is: %d", serverStorage.sin_port);
+  
+      printf("\nClient padding characters are (should be blank): ");
+  
+      int i;
+  
+      for (i=0;i<8;i++){
+          printf("%c", serverStorage.sin_zero[i]);
+      }
+  
+      printf("\nGot a client connection from IP, port: <%s, %d> (can be used for client identification)\n", inet_ntoa(serverStorage.sin_addr), serverStorage.sin_port);
+  
+      recv(newSocket,buffer,1024,0);
+  
+      printf("\nData recieved from the client: %s \n",buffer);
+  
+      strcpy(buffer,"Hey");
+  
+      printf("\nSending data '%s' to the client. \n",buffer);
+  
+      send(newSocket,buffer,23,0);
+ 
+      close(newSocket);
+  
+      return 0;
+  
+  }
+                                                
 
-int main(int argc, char *argv[])
-{
-     int sockfd, newsockfd, portno, clilen;
-     char buffer[256];
-     struct sockaddr_in serv_addr, cli_addr;
-     int n;
-     if (argc < 2) {
-         fprintf(stderr,"ERROR, no port provided\n");
-         exit(1);
-     }
-     sockfd = socket(AF_INET, SOCK_STREAM, 0);
-     if (sockfd < 0)
-        error("ERROR opening socket");
-     bzero((char *) &serv_addr, sizeof(serv_addr));
-     portno = atoi(argv[1]);
-     serv_addr.sin_family = AF_INET;
-     serv_addr.sin_addr.s_addr = INADDR_ANY;
-     serv_addr.sin_port = htons(portno);
-     if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
-        error("ERROR on binding");
-     listen(sockfd,5);
-     clilen = sizeof(cli_addr);
-     newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
-     if (newsockfd < 0)
-        error("ERROR on accept");
-     bzero(buffer,256);
-     n = read(newsockfd,buffer,255);
-     if (n < 0)
-        error("ERROR reading from socket");
-        printf("Hello \n");
-     printf("Here is the message: %s\n",buffer);
-     n = write(newsockfd,"Hello",6);
-     if (n < 0)
-        error("ERROR writing to socket");
-     return 0;
-}
 
