@@ -8,6 +8,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <string.h>
+#include <time.h>
 
 struct client_details {
 	char *item;
@@ -15,6 +16,13 @@ struct client_details {
 	char* IP;
 	int port;
 };
+
+char* timestamp()
+{
+    time_t ltime; /* calendar time */
+    ltime=time(NULL); /* get current cal time */
+    return(asctime( localtime(&ltime) ) );
+}
 
 int main(void)
 {
@@ -28,6 +36,7 @@ int main(void)
 
 	int numrv, mango=30, orange=30, guava=30, banana=30 ,sav;
 	int mclientno=0, oclientno=0, gclientno=0, bclientno=0, transno=0;
+	char *mtime = "--",*otime = "--",*gtime = "--",*btime = "--";
 	char new1[50];
 	int new,i,j;
 	listenfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -54,6 +63,7 @@ int main(void)
 
 	while(1)
 	{
+		printf("\n-----------------------------------------------------\n");
 		addr_size = sizeof(serverStorage);
 		connfd = accept(listenfd, (struct sockaddr*) &serverStorage , &addr_size);	  // accept awaiting request
 
@@ -94,6 +104,7 @@ int main(void)
 				transactions[trans].port = serverStorage.sin_port;
 				transactions[trans].item = "Mango";
 				transactions[trans].qty = new;
+				mtime = timestamp();
 				trans++;							//to calculate total no. of transactions done
 				transno = mclientno++;						//to send the no. of clients who have previously ordered this item
 			}
@@ -112,6 +123,7 @@ int main(void)
 				transactions[trans].port = serverStorage.sin_port;
 				transactions[trans].item = "Orange";
                                 transactions[trans].qty = new;
+				otime = timestamp();
 				trans++;							//to calculate total no. of transactions done
 				transno = oclientno++;						//to send the no. of clients who have previously ordered this item
 			}
@@ -131,6 +143,7 @@ int main(void)
 				transactions[trans].port = serverStorage.sin_port;
 				transactions[trans].item = "Guava";
                                 transactions[trans].qty = new;
+				gtime = timestamp();
 				trans++;							//to calculate total no. of transactions done
 				transno = gclientno++;						//to send the no. of clients who have previously ordered this item
 			}
@@ -151,15 +164,19 @@ int main(void)
 				transactions[trans].port = serverStorage.sin_port;
 	                        transactions[trans].item = "Banana";
                                 transactions[trans].qty = new;
+				btime = timestamp();
 				trans++;							//to calculate total no. of transactions done
 				transno = bclientno++;						//to send the no. of clients who have previously ordered this item
 			}
 
 		}
-		//write the data for client   
+		//write the data for client
 		printf("\nAvailable items");
-		printf("\nProduct\t\tQty_left\tLast Sold");
-		printf("\nMango\t\t%d\nOrange\t\t\%d\nGuava\t\t%d\nBanana\t\t%d\n",mango,orange,guava,banana); 
+		printf("\nProduct\t\tQty_left\tLast Sold"); 
+		printf("\nMango\t\t%d\t\t%s",mango,mtime);
+		printf("\nOrange\t\t%d\t\t%s",orange,otime);
+		printf("\nGuava\t\t%d\t\t%s",guava,gtime);
+		printf("\nBanana\t\t%d\t\t%s",banana,btime);
 		if ((write(connfd,&transno,sizeof(transno)))== -1)
 		{
 			fprintf(stderr, "Failure Sending Message\n");
@@ -171,7 +188,6 @@ int main(void)
 		for(j = 0; j < trans; j++){
 			printf("%s\t\t%d\t\t%s\t%d\n",transactions[j].item,transactions[j].qty,transactions[j].IP,transactions[j].port);
 		} 
-
 		close(connfd); //Close Connection Socket   
 		sleep(1);
 	} //End of Inner While...
