@@ -1,87 +1,66 @@
 #include <stdio.h>
-
 #include <sys/socket.h>
-
 #include <netinet/in.h>
-
 #include <string.h>
-
 #include <stdlib.h>
-
 #include <arpa/inet.h>
-
 #include <ctype.h>
 
 
 
 int main(){
 
-	int udpSocket, nBytes;
+  int udpSocket, nBytes;
 
-	char buffer[1024];
+  char buffer[1024];
 
-	struct sockaddr_in serverAddr, clientAddr;
+  struct sockaddr_in serverAddr, clientAddr;
 
-	struct sockaddr_storage serverStorage;
+  struct sockaddr_storage serverStorage;
 
-	socklen_t addr_size, client_addr_size;
+  socklen_t addr_size, client_addr_size;
 
-	int i;
+  int i;
 
+  /*Create UDP socket*/
 
+  udpSocket = socket(PF_INET, SOCK_DGRAM, 0);
 
-	/*Create UDP socket*/
+  /*Configure settings in address struct*/
 
-	udpSocket = socket(PF_INET, SOCK_DGRAM, 0);
+  serverAddr.sin_family = AF_INET;
 
+  serverAddr.sin_port = htons(16012);
 
+  serverAddr.sin_addr.s_addr = inet_addr("127.0.0.1");
 
-	/*Configure settings in address struct*/
+  //memset(serverAddr.sin_zero, '\0', sizeof serverAddr.sin_zero);  
 
-	serverAddr.sin_family = AF_INET;
+  /*Bind socket with address struct*/
 
-	serverAddr.sin_port = htons(16012);
+  bind(udpSocket, (struct sockaddr *) &serverAddr, sizeof(serverAddr));
 
-	serverAddr.sin_addr.s_addr = inet_addr("127.0.0.1");
+  /*Initialize size variable to be used later on*/
 
-	/*memset(serverAddr.sin_zero, '\0', sizeof serverAddr.sin_zero);  
-	 *
-	 *
-	 *
-	 *   /*Bind socket with address struct*/
+  addr_size = sizeof serverStorage;
 
-	bind(udpSocket, (struct sockaddr *) &serverAddr, sizeof(serverAddr));
+  while(1){
 
+    /* Try to receive any incoming UDP datagram. Address and port of 
 
+      requesting client will be stored on serverStorage variable */
 
-	/*Initialize size variable to be used later on*/
+    nBytes = recvfrom(udpSocket,buffer,1024,0,(struct sockaddr *)&serverStorage, &addr_size);
 
-	addr_size = sizeof serverStorage;
+    printf("Message from Client : %s", buffer);
 
+    strcpy(buffer, "Hello");
 
+    sendto(udpSocket,buffer,nBytes,0,(struct sockaddr *)&serverStorage,addr_size);
 
-	while(1){
+  }
 
-		/* Try to receive any incoming UDP datagram. Address and port of
-		 *
-		 *       requesting client will be stored on serverStorage variable */
-
-		nBytes = recvfrom(udpSocket,buffer,1024,0,(struct sockaddr *)&serverStorage, &addr_size) + 1;
-
-		printf("Message from client is: %s",buffer);
-
-		strcpy(buffer,"Hello\n");
-
-
-
-		/*Send uppercase message back to client, using serverStorage as the address*/
-
-		sendto(udpSocket,buffer,nBytes,0,(struct sockaddr *)&serverStorage,addr_size);
-	}
-
-
-
-	return 0;
+  return 0;
 
 }
 

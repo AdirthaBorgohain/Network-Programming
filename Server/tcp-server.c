@@ -3,126 +3,111 @@
 #include <netinet/in.h>
 #include <string.h>
 #include <arpa/inet.h>
+#include <unistd.h>
 
-int main(){
+int main()
+{
 
-	int welcomeSocket, newSocket;
+  int welcomeSocket, newSocket;
 
-	char buffer[1024];
+  char buffer[1024];
 
-	struct sockaddr_in serverAddr;
+  struct sockaddr_in serverAddr;
 
-	struct sockaddr_in serverStorage;
+  struct sockaddr_in serverStorage;
 
-	socklen_t addr_size;
+  socklen_t addr_size;
 
+  /*---- Create the socket. The three arguments are: ----*/
 
+  /* 1) Internet domain 2) Stream socket 3) Default protocol (TCP in this case) */
 
-	/*---- Create the socket. The three arguments are: ----*/
+  welcomeSocket = socket(PF_INET, SOCK_STREAM, 0);
 
-	/* 1) Internet domain 2) Stream socket 3) Default protocol (TCP in this case) */
+  /*---- Configure settings of the server address struct ----*/
 
-	welcomeSocket = socket(PF_INET, SOCK_STREAM, 0);
+  /* Address family = Internet */
 
+  serverAddr.sin_family = AF_INET;
 
+  /* Set port number, using htons function to use proper byte order */
 
-	/*---- Configure settings of the server address struct ----*/
+  serverAddr.sin_port = htons(16012);
 
-	/* Address family = Internet */
+  /* Set IP address to localhost */
 
-	serverAddr.sin_family = AF_INET;
+  serverAddr.sin_addr.s_addr = inet_addr("127.0.0.1");
 
+  /* Set all bits of the padding field to 0 */
 
-	/* Set port number, using htons function to use proper byte order */
+  memset(serverAddr.sin_zero, '\0', sizeof serverAddr.sin_zero);
 
-	serverAddr.sin_port = htons(7891);
+  /*---- Bind the address struct to the socket ----*/
 
+  bind(welcomeSocket, (struct sockaddr *)&serverAddr, sizeof(serverAddr));
 
-	/* Set IP address to localhost */
+  /*---- Listen on the socket, with 5 max connection requests queued ----*/
 
-	serverAddr.sin_addr.s_addr = inet_addr("127.0.0.1");
+  if (listen(welcomeSocket, 5) == 0)
 
+    printf("Listening\n");
 
-	/* Set all bits of the padding field to 0 */
+  else
 
-	memset(serverAddr.sin_zero, '\0', sizeof serverAddr.sin_zero);
+    printf("Error\n");
 
+  /*---- Accept call creates a new socket for the incoming connection ----*/
 
-	/*---- Bind the address struct to the socket ----*/
+  while (1)
+  {
 
-	bind(welcomeSocket, (struct sockaddr *) &serverAddr, sizeof(serverAddr));
+    addr_size = sizeof serverStorage;
 
+    newSocket = accept(welcomeSocket, (struct sockaddr *)&serverStorage, &addr_size);
 
-	/*---- Listen on the socket, with 5 max connection requests queued ----*/
+    /*---- Identify clients like this. The following information of client are taken from client due to connect function ----*/
+    //Change of the following information at client side can not be done. However, padding field may be changed and that may be tried
 
-	if(listen(welcomeSocket,5)==0)
+    struct sockaddr_in *cliIP = (struct sockaddr_in *)&serverStorage;
 
+    struct in_addr ipAddr = cliIP->sin_addr;
 
-		printf("Listening\n");
+    char str[INET_ADDRSTRLEN];
 
-	else
+    inet_ntop(AF_INET, &ipAddr, str, INET_ADDRSTRLEN);
 
-		printf("Error\n");
+    char *ID = cliIP->sin_zero;
 
-	/*---- Accept call creates a new socket for the incoming connection ----*/
+    char str2[8];
 
-	while(1) {
+    inet_ntop(AF_INET, &ID, str2, 8);
 
-		addr_size = sizeof serverStorage;
+    printf("\nClient IP is: %s", str);
 
-		newSocket = accept(welcomeSocket, (struct sockaddr *) &serverStorage, &addr_size);
+    printf("\nClient port is: %d", serverStorage.sin_port);
 
-		/*---- Identify clients like this. The following information of client are taken from client due to connect function ----*/
-		/*---- Change of the following information at client side can not be done. However, padding field may be changed and that may be tried ----*/
+    printf("\nClient padding characters are (should be blank): ");
 
-		struct sockaddr_in* cliIP = (struct sockaddr_in*)&serverStorage;
+    int i;
 
-		struct in_addr ipAddr = cliIP->sin_addr;
+    for (i = 0; i < 8; i++)
+    {
+      printf("%c", serverStorage.sin_zero[i]);
+    }
 
-		char str[INET_ADDRSTRLEN];
+    /*---- A  one liner ----*/
 
-		inet_ntop(AF_INET, &ipAddr, str, INET_ADDRSTRLEN);
+    printf("\nGot a client connection from IP, port: <%s, %d> (can be used for client identification)\n", inet_ntoa(serverStorage.sin_addr), serverStorage.sin_port);
 
-		char* ID = cliIP->sin_zero;
+    recv(newSocket, buffer, 1024, 0);
 
-		char str2[8];
+    printf("\nData received from client <%s, %d>: %s\n", inet_ntoa(serverStorage.sin_addr), serverStorage.sin_port, buffer);
 
-		inet_ntop(AF_INET, &ID, str2, 8);
+    strcpy(buffer, "Hello!\n");
 
-		printf("\nClient IP is: %s", str);
+    send(newSocket, buffer, 23, 0);
 
-		printf("\nClient port is: %d", serverStorage.sin_port);
-
-		printf("\nClient padding characters are (should be blank): ");
-
-		int i;
-
-		for (i=0;i<8;i++){
-			printf("%c", serverStorage.sin_zero[i]);
-		}
-
-		/*---- A  one liner ----*/
-
-		printf("\nGot a client connection from IP, port: <%s, %d> (can be used for client identification)\n", inet_ntoa(serverStorage.sin_addr), serverStorage.sin_port);
-
-		/*---- Send message to the socket of the incoming connection ----*/
-
-		strcpy(buffer, "Welcome from server");
-
-		send(newSocket,buffer,23,0);
-
-
-		/* ---- Receive message from client, if any ---- */
-
-		recv(newSocket, buffer, 1024, 0);
-
-
-		printf("\nData received from client <%s, %d>: %s\n",inet_ntoa(serverStorage.sin_addr), serverStorage.sin_port, buffer);
-
-		close(newSocket);
-
-	}
-	return 0;
-
+    close(newSocket);
+  }
+  return 0;
 }
-

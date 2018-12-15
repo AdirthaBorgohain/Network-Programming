@@ -22,3 +22,9 @@ This repo consists of script files primarily used for socket programming.
 3. Redo problem no. 1 using UDP socket.
 
 4. Create a math server where the client sends a computational problem which is solved and sent back by the server.
+
+5. Redo problem 2 using python
+
+6. Create a group-chat program where several clients can connect to a server and communicate among themselves.
+
+7. Create a one to one chat program where the clients provide their own ids and communicate with each other with their corresponding ids.
